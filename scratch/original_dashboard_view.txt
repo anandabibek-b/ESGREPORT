@@ -1,0 +1,108 @@
+Created At: 2026-10-02T22:18:40+05:30
+Completed At: 2026-10-02T22:18:40+05:30
+File Path: `file:///c:/ESG%20Bibek%202/frontend/src/components/DashboardView.tsx`
+Total Lines: 574
+Total Bytes: 33497
+Showing lines 1 to 100
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: 'use client';
+2: 
+3: import React, { useState, useEffect } from 'react';
+4: import { api } from '../lib/api';
+5: import { NavTab, NAV_ITEMS_CONFIG } from '../lib/navigationConfig';
+6: import {
+7:   TrendingUp,
+8:   TrendingDown,
+9:   CheckCircle,
+10:   AlertTriangle,
+11:   FileCheck,
+12:   Building,
+13:   Zap,
+14:   Users,
+15:   ShieldCheck,
+16:   ArrowRight,
+17:   FileDown,
+18:   RefreshCw,
+19:   Award,
+20:   Leaf,
+21:   Calculator,
+22: } from 'lucide-react';
+23: 
+24: interface DashboardViewProps {
+25:   onNavigate: (tab: NavTab) => void;
+26:   activePeriodId?: string;
+27: }
+28: 
+29: export const DashboardView: React.FC<DashboardViewProps> = ({
+30:   onNavigate,
+31:   activePeriodId,
+32: }) => {
+33:   const [data, setData] = useState<any>(null);
+34:   const [isLoading, setIsLoading] = useState<boolean>(true);
+35: 
+36:   useEffect(() => {
+37:     async function loadDashboard() {
+38:       setIsLoading(true);
+39:       try {
+40:         const res = await api.getExecutiveDashboard(activePeriodId);
+41:         if (res.success && res.data) {
+42:           setData(res.data);
+43:         }
+44:       } catch (err) {
+45:         console.error('Failed to load dashboard:', err);
+46:       } finally {
+47:         setIsLoading(false);
+48:       }
+49:     }
+50:     loadDashboard();
+51:   }, [activePeriodId]);
+52: 
+53:   if (isLoading) {
+54:     return (
+55:       <div className="p-12 flex items-center justify-center min-h-[400px]">
+56:         <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 text-sm">
+57:           <RefreshCw className="w-5 h-5 animate-spin text-sky-600 dark:text-sky-400" />
+58:           <span>Loading Executive ESG Portal data...</span>
+59:         </div>
+60:       </div>
+61:     );
+62:   }
+63: 
+64:   const stats = data?.stats || {
+65:     submissions: { total: 6, draft: 1, submitted: 1, underReview: 1, approved: 0, rejected: 0, consolidated: 3 },
+66:     orgUnits: 8,
+67:     evidence: 4,
+68:     pendingReviews: 1,
+69:     pendingApprovals: 1,
+70:     validationIssues: 1,
+71:     users: 6,
+72:     dataQualityScore: 92,
+73:   };
+74: 
+75:   return (
+76:     <div className="w-full space-y-6 animate-fadeIn pb-12 transition-colors duration-200">
+77:       {/* 1. HERO BANNER WITH EXECUTIVE LEADERSHIP */}
+78:       <div className="rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1E293B] p-6 sm:p-8 shadow-xs transition-colors duration-200">
+79:         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+80:           {/* Left Text & Mission */}
+81:           <div className="max-w-2xl space-y-3.5">
+82:             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-800 dark:text-sky-300 text-xs font-semibold">
+83:               <Leaf className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+84:               <span>MEIL Corporate ESG Directorate • Integrated BRSR Portal</span>
+85:             </div>
+86: 
+87:             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">
+88:               Building Resilient Infrastructure & Driving Sustainable Green Growth
+89:               <span className="block text-base sm:text-lg font-medium text-slate-600 dark:text-slate-300 mt-1 font-sans">
+90:                 SEBI BRSR Reasonable Assurance & Carbon Accounting Across 250+ Project Sites
+91:               </span>
+92:             </h1>
+93: 
+94:             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+95:               SEBI BRSR Core compliance platform monitoring Scope 1 direct fuel telemetry, CEA baseline Scope 2 grid emissions, captive solar lift irrigation at Kaleshwaram, and strategic tunneling at Zojila across 250+ active project sites.
+96:             </p>
+97: 
+98:             {/* Quick CTAs */}
+99:             <div className="flex flex-wrap items-center gap-3 pt-2">
+100:               <button
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

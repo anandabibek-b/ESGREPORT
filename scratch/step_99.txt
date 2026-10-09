@@ -1,0 +1,213 @@
+Created At: 2026-10-02T22:19:04+05:30
+Completed At: 2026-10-02T22:19:04+05:30
+File Path: `file:///c:/ESG%20Bibek%202/frontend/src/lib/navigationConfig.ts`
+Total Lines: 205
+Total Bytes: 6019
+Showing lines 1 to 205
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import React from 'react';
+2: import {
+3:   LayoutDashboard,
+4:   Building2,
+5:   FileSpreadsheet,
+6:   CheckCircle2,
+7:   Calculator,
+8:   Paperclip,
+9:   GitCompare,
+10:   GitBranch,
+11:   FileDown,
+12:   History,
+13:   Settings,
+14: } from 'lucide-react';
+15: 
+16: export type NavTab =
+17:   | 'dashboard'
+18:   | 'organizations'
+19:   | 'questionnaire'
+20:   | 'validation'
+21:   | 'calculations'
+22:   | 'evidence'
+23:   | 'comparison'
+24:   | 'lineage'
+25:   | 'reports'
+26:   | 'audit'
+27:   | 'settings';
+28: 
+29: export interface NavItemConfig {
+30:   id: NavTab;
+31:   label: string;
+32:   shortLabel: string;
+33:   pill: string;
+34:   description: string;
+35:   engineCategory: string;
+36:   icon: React.ComponentType<{ className?: string }>;
+37:   badge?: string | number;
+38:   badgeColor?: string;
+39:   colors: {
+40:     accent: string;
+41:     inactiveIconBg: string;
+42:     inactiveIconColor: string;
+43:     inactiveBorder: string;
+44:     hoverBorder: string;
+45:     hoverBg: string;
+46:     hoverText: string;
+47:     hoverIconGlow: string;
+48:     activeBorder: string;
+49:     activeBg: string;
+50:     activeText: string;
+51:     activeShadow: string;
+52:     indicatorGrad: string;
+53:     pillBg: string;
+54:     pillText: string;
+55:     pillBorder: string;
+56:     cardGlow: string;
+57:     cardBorderHover: string;
+58:     cardGradientBg: string;
+59:     cardIconGrad: string;
+60:     buttonGradient: string;
+61:   };
+62: }
+63: 
+64: const enterpriseColor = (accent: string = 'sky') => ({
+65:   accent,
+66:   inactiveIconBg: 'bg-slate-100 text-slate-600 border border-slate-200 group-hover:bg-sky-50 group-hover:text-sky-700 group-hover:border-sky-200',
+67:   inactiveIconColor: 'text-slate-500 group-hover:text-sky-600',
+68:   inactiveBorder: 'border-slate-200/90',
+69:   hoverBorder: 'hover:border-slate-300',
+70:   hoverBg: 'hover:bg-slate-100/80',
+71:   hoverText: 'hover:text-slate-900',
+72:   hoverIconGlow: '',
+73:   activeBorder: 'border-sky-500/50',
+74:   activeBg: 'bg-white',
+75:   activeText: 'text-sky-700',
+76:   activeShadow: 'shadow-xs',
+77:   indicatorGrad: 'bg-sky-600',
+78:   pillBg: 'bg-slate-100',
+79:   pillText: 'text-slate-600',
+80:   pillBorder: 'border-slate-200',
+81:   cardGlow: 'hover:shadow-sm',
+82:   cardBorderHover: 'hover:border-sky-300',
+83:   cardGradientBg: 'bg-white',
+84:   cardIconGrad: 'bg-sky-50 text-sky-700 border border-sky-200/70',
+85:   buttonGradient: 'bg-sky-600 hover:bg-sky-700 text-white font-medium',
+86: });
+87: 
+88: export const NAV_ITEMS_CONFIG: NavItemConfig[] = [
+89:   {
+90:     id: 'dashboard',
+91:     label: 'Dashboard',
+92:     shortLabel: 'Overview',
+93:     pill: 'Executive KPIs',
+94:     description: 'Executive scorecards, BRSR Core compliance rate, and real-time GHG footprint meters.',
+95:     engineCategory: 'Intelligence & Command',
+96:     icon: LayoutDashboard,
+97:     colors: enterpriseColor('sky'),
+98:   },
+99:   {
+100:     id: 'organizations',
+101:     label: 'Organization Units',
+102:     shortLabel: 'Org Units',
+103:     pill: '250+ Project Sites',
+104:     description: '4-Tier operational hierarchy: Corporate HQ, 3 Subsidiaries, 2 Business Units, and Sites.',
+105:     engineCategory: 'Structure & Tenancy',
+106:     icon: Building2,
+107:     colors: enterpriseColor('cyan'),
+108:   },
+109:   {
+110:     id: 'questionnaire',
+111:     label: 'ESG Disclosures',
+112:     shortLabel: 'Disclosures',
+113:     pill: 'P1–P9 SEBI Core',
+114:     description: 'Mandatory SEBI BRSR questions across General Disclosures, Management, and Principles 1-9.',
+115:     engineCategory: 'Statutory Reporting',
+116:     icon: FileSpreadsheet,
+117:     badge: '9 Principles',
+118:     colors: enterpriseColor('blue'),
+119:   },
+120:   {
+121:     id: 'validation',
+122:     label: 'Validation Engine',
+123:     shortLabel: 'Validations',
+124:     pill: '11 Assertions',
+125:     description: 'Server-side rule engine enforcing 11 assertion categories, blocking invalid submissions.',
+126:     engineCategory: 'Quality & Assurance',
+127:     icon: CheckCircle2,
+128:     colors: enterpriseColor('rose'),
+129:   },
+130:   {
+131:     id: 'calculations',
+132:     label: 'Deterministic Engine',
+133:     shortLabel: 'GHG Math',
+134:     pill: 'IPCC & CEA Factors',
+135:     description: 'Zero frontend math. Server-side computation of Scope 1, Scope 2 CEA baseline & LTIFR safety.',
+136:     engineCategory: 'Deterministic Compute',
+137:     icon: Calculator,
+138:     badge: 'IPCC / CEA',
+139:     colors: enterpriseColor('indigo'),
+140:   },
+141:   {
+142:     id: 'evidence',
+143:     label: 'Evidence Register',
+144:     shortLabel: 'Evidence',
+145:     pill: 'Cryptographic SHA-256',
+146:     description: 'Tamper-evident audit vault with SHA-256 checksums, vendor fuel invoices, and meter telemetry.',
+147:     engineCategory: 'Audit Ledger',
+148:     icon: Paperclip,
+149:     colors: enterpriseColor('teal'),
+150:   },
+151:   {
+152:     id: 'comparison',
+153:     label: 'Period Comparison',
+154:     shortLabel: 'YoY Analysis',
+155:     pill: 'YoY ±15% Radar',
+156:     description: 'Period-over-period variance calculation between FY 2024-25 and baseline with anomaly alerts.',
+157:     engineCategory: 'Trend & Variance',
+158:     icon: GitCompare,
+159:     badge: 'YoY',
+160:     colors: enterpriseColor('amber'),
+161:   },
+162:   {
+163:     id: 'lineage',
+164:     label: 'Data Provenance',
+165:     shortLabel: 'Lineage DAG',
+166:     pill: 'Chain of Custody',
+167:     description: 'Directed Acyclic Graph tracing raw invoice → telemetry → deterministic formula → SEBI filing.',
+168:     engineCategory: 'Chain of Custody',
+169:     icon: GitBranch,
+170:     colors: enterpriseColor('cyan'),
+171:   },
+172:   {
+173:     id: 'reports',
+174:     label: 'Regulatory Reports',
+175:     shortLabel: 'Export Center',
+176:     pill: 'PDF / Excel / JSON',
+177:     description: 'Instant generation of official SEBI BRSR Annual Report PDF, multi-sheet Excel, and JSON schema.',
+178:     engineCategory: 'Statutory Filings',
+179:     icon: FileDown,
+180:     badge: 'PDF/XLS',
+181:     colors: enterpriseColor('blue'),
+182:   },
+183:   {
+184:     id: 'audit',
+185:     label: 'Audit Trail',
+186:     shortLabel: 'Audit Logs',
+187:     pill: 'Immutable Ledger',
+188:     description: 'Complete append-only audit trail logging all edits, approvals, role switches, and validations.',
+189:     engineCategory: 'Governance & Assurance',
+190:     icon: History,
+191:     colors: enterpriseColor('slate'),
+192:   },
+193:   {
+194:     id: 'settings',
+195:     label: 'Settings & RBAC',
+196:     shortLabel: 'RBAC Admin',
+197:     pill: 'Access Matrix',
+198:     description: 'Fine-grained RBAC for 6 personas, tenant parameters, workflow locks, and reporting limits.',
+199:     engineCategory: 'Administration & Security',
+200:     icon: Settings,
+201:     badge: 'RBAC',
+202:     colors: enterpriseColor('sky'),
+203:   },
+204: ];
+205: 
+The above content shows the entire, complete file contents of the requested file.

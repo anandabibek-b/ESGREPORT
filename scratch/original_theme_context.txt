@@ -1,0 +1,86 @@
+Created At: 2026-10-02T22:20:37+05:30
+Completed At: 2026-10-02T22:20:37+05:30
+File Path: `file:///c:/ESG%20Bibek%202/frontend/src/context/ThemeContext.tsx`
+Total Lines: 78
+Total Bytes: 2285
+Showing lines 1 to 78
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: 'use client';
+2: 
+3: import React, { createContext, useContext, useEffect, useState } from 'react';
+4: 
+5: export type Theme = 'light' | 'dark';
+6: 
+7: interface ThemeContextType {
+8:   theme: Theme;
+9:   toggleTheme: () => void;
+10:   setTheme: (theme: Theme) => void;
+11: }
+12: 
+13: const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+14: 
+15: export const THEME_STORAGE_KEY = 'meil_theme';
+16: 
+17: export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+18:   // Always default to 'light' as per strict requirement
+19:   const [theme, setThemeState] = useState<Theme>('light');
+20:   const [mounted, setMounted] = useState(false);
+21: 
+22:   useEffect(() => {
+23:     // Only check saved preference on client mount
+24:     try {
+25:       const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+26:       if (savedTheme === 'dark') {
+27:         setThemeState('dark');
+28:         document.documentElement.classList.add('dark');
+29:         document.documentElement.setAttribute('data-theme', 'dark');
+30:       } else {
+31:         // Default is light (even on first visit or if saved is 'light')
+32:         setThemeState('light');
+33:         document.documentElement.classList.remove('dark');
+34:         document.documentElement.setAttribute('data-theme', 'light');
+35:       }
+36:     } catch {
+37:       // Fallback to light
+38:       setThemeState('light');
+39:     }
+40:     setMounted(true);
+41:   }, []);
+42: 
+43:   const setTheme = (newTheme: Theme) => {
+44:     setThemeState(newTheme);
+45:     try {
+46:       localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+47:       if (newTheme === 'dark') {
+48:         document.documentElement.classList.add('dark');
+49:         document.documentElement.setAttribute('data-theme', 'dark');
+50:       } else {
+51:         document.documentElement.classList.remove('dark');
+52:         document.documentElement.setAttribute('data-theme', 'light');
+53:       }
+54:     } catch {
+55:       // ignore localStorage errors
+56:     }
+57:   };
+58: 
+59:   const toggleTheme = () => {
+60:     const nextTheme = theme === 'dark' ? 'light' : 'dark';
+61:     setTheme(nextTheme);
+62:   };
+63: 
+64:   return (
+65:     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+66:       {children}
+67:     </ThemeContext.Provider>
+68:   );
+69: };
+70: 
+71: export const useTheme = () => {
+72:   const context = useContext(ThemeContext);
+73:   if (!context) {
+74:     throw new Error('useTheme must be used within a ThemeProvider');
+75:   }
+76:   return context;
+77: };
+78: 
+The above content shows the entire, complete file contents of the requested file.

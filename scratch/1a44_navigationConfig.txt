@@ -1,0 +1,204 @@
+import React from 'react';
+import {
+  LayoutDashboard,
+  Building2,
+  FileSpreadsheet,
+  CheckCircle2,
+  Calculator,
+  Paperclip,
+  GitCompare,
+  GitBranch,
+  FileDown,
+  History,
+  Settings,
+} from 'lucide-react';
+
+export type NavTab =
+  | 'dashboard'
+  | 'organizations'
+  | 'questionnaire'
+  | 'validation'
+  | 'calculations'
+  | 'evidence'
+  | 'comparison'
+  | 'lineage'
+  | 'reports'
+  | 'audit'
+  | 'settings';
+
+export interface NavItemConfig {
+  id: NavTab;
+  label: string;
+  shortLabel: string;
+  pill: string;
+  description: string;
+  engineCategory: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string | number;
+  badgeColor?: string;
+  colors: {
+    accent: string;
+    inactiveIconBg: string;
+    inactiveIconColor: string;
+    inactiveBorder: string;
+    hoverBorder: string;
+    hoverBg: string;
+    hoverText: string;
+    hoverIconGlow: string;
+    activeBorder: string;
+    activeBg: string;
+    activeText: string;
+    activeShadow: string;
+    indicatorGrad: string;
+    pillBg: string;
+    pillText: string;
+    pillBorder: string;
+    cardGlow: string;
+    cardBorderHover: string;
+    cardGradientBg: string;
+    cardIconGrad: string;
+    buttonGradient: string;
+  };
+}
+
+const enterpriseColor = (accent: string = 'sky') => ({
+  accent,
+  inactiveIconBg: 'bg-slate-100 text-slate-600 border border-slate-200 group-hover:bg-sky-50 group-hover:text-sky-700 group-hover:border-sky-200',
+  inactiveIconColor: 'text-slate-500 group-hover:text-sky-600',
+  inactiveBorder: 'border-slate-200/90',
+  hoverBorder: 'hover:border-slate-300',
+  hoverBg: 'hover:bg-slate-100/80',
+  hoverText: 'hover:text-slate-900',
+  hoverIconGlow: '',
+  activeBorder: 'border-sky-500/50',
+  activeBg: 'bg-white',
+  activeText: 'text-sky-700',
+  activeShadow: 'shadow-xs',
+  indicatorGrad: 'bg-sky-600',
+  pillBg: 'bg-slate-100',
+  pillText: 'text-slate-600',
+  pillBorder: 'border-slate-200',
+  cardGlow: 'hover:shadow-sm',
+  cardBorderHover: 'hover:border-sky-300',
+  cardGradientBg: 'bg-white',
+  cardIconGrad: 'bg-sky-50 text-sky-700 border border-sky-200/70',
+  buttonGradient: 'bg-sky-600 hover:bg-sky-700 text-white font-medium',
+});
+
+export const NAV_ITEMS_CONFIG: NavItemConfig[] = [
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    shortLabel: 'Overview',
+    pill: 'Executive KPIs',
+    description: 'Executive scorecards, BRSR Core compliance rate, and real-time GHG footprint meters.',
+    engineCategory: 'Intelligence & Command',
+    icon: LayoutDashboard,
+    colors: enterpriseColor('sky'),
+  },
+  {
+    id: 'organizations',
+    label: 'Organization Units',
+    shortLabel: 'Org Units',
+    pill: '250+ Project Sites',
+    description: '4-Tier operational hierarchy: Corporate HQ, 3 Subsidiaries, 2 Business Units, and Sites.',
+    engineCategory: 'Structure & Tenancy',
+    icon: Building2,
+    colors: enterpriseColor('cyan'),
+  },
+  {
+    id: 'questionnaire',
+    label: 'ESG Disclosures',
+    shortLabel: 'Disclosures',
+    pill: 'P1–P9 SEBI Core',
+    description: 'Mandatory SEBI BRSR questions across General Disclosures, Management, and Principles 1-9.',
+    engineCategory: 'Statutory Reporting',
+    icon: FileSpreadsheet,
+    badge: '9 Principles',
+    colors: enterpriseColor('blue'),
+  },
+  {
+    id: 'validation',
+    label: 'Validation Engine',
+    shortLabel: 'Validations',
+    pill: '11 Assertions',
+    description: 'Server-side rule engine enforcing 11 assertion categories, blocking invalid submissions.',
+    engineCategory: 'Quality & Assurance',
+    icon: CheckCircle2,
+    colors: enterpriseColor('rose'),
+  },
+  {
+    id: 'calculations',
+    label: 'Deterministic Engine',
+    shortLabel: 'GHG Math',
+    pill: 'IPCC & CEA Factors',
+    description: 'Zero frontend math. Server-side computation of Scope 1, Scope 2 CEA baseline & LTIFR safety.',
+    engineCategory: 'Deterministic Compute',
+    icon: Calculator,
+    badge: 'IPCC / CEA',
+    colors: enterpriseColor('indigo'),
+  },
+  {
+    id: 'evidence',
+    label: 'Evidence Register',
+    shortLabel: 'Evidence',
+    pill: 'Cryptographic SHA-256',
+    description: 'Tamper-evident audit vault with SHA-256 checksums, vendor fuel invoices, and meter telemetry.',
+    engineCategory: 'Audit Ledger',
+    icon: Paperclip,
+    colors: enterpriseColor('teal'),
+  },
+  {
+    id: 'comparison',
+    label: 'Period Comparison',
+    shortLabel: 'YoY Analysis',
+    pill: 'YoY ±15% Radar',
+    description: 'Period-over-period variance calculation between FY 2024-25 and baseline with anomaly alerts.',
+    engineCategory: 'Trend & Variance',
+    icon: GitCompare,
+    badge: 'YoY',
+    colors: enterpriseColor('amber'),
+  },
+  {
+    id: 'lineage',
+    label: 'Data Provenance',
+    shortLabel: 'Lineage DAG',
+    pill: 'Chain of Custody',
+    description: 'Directed Acyclic Graph tracing raw invoice → telemetry → deterministic formula → SEBI filing.',
+    engineCategory: 'Chain of Custody',
+    icon: GitBranch,
+    colors: enterpriseColor('cyan'),
+  },
+  {
+    id: 'reports',
+    label: 'Regulatory Reports',
+    shortLabel: 'Export Center',
+    pill: 'PDF / Excel / JSON',
+    description: 'Instant generation of official SEBI BRSR Annual Report PDF, multi-sheet Excel, and JSON schema.',
+    engineCategory: 'Statutory Filings',
+    icon: FileDown,
+    badge: 'PDF/XLS',
+    colors: enterpriseColor('blue'),
+  },
+  {
+    id: 'audit',
+    label: 'Audit Trail',
+    shortLabel: 'Audit Logs',
+    pill: 'Immutable Ledger',
+    description: 'Complete append-only audit trail logging all edits, approvals, role switches, and validations.',
+    engineCategory: 'Governance & Assurance',
+    icon: History,
+    colors: enterpriseColor('slate'),
+  },
+  {
+    id: 'settings',
+    label: 'Settings & RBAC',
+    shortLabel: 'RBAC Admin',
+    pill: 'Access Matrix',
+    description: 'Fine-grained RBAC for 6 personas, tenant parameters, workflow locks, and reporting limits.',
+    engineCategory: 'Administration & Security',
+    icon: Settings,
+    badge: 'RBAC',
+    colors: enterpriseColor('sky'),
+  },
+];

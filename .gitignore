@@ -1,0 +1,107 @@
+# ============================================================
+# ESG BRSR Reporting Platform - .gitignore
+# ============================================================
+
+# ------------------------------------------------------------
+# Dependencies
+# ------------------------------------------------------------
+node_modules/
+*/node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ------------------------------------------------------------
+# Environment Variables & Secrets
+# ------------------------------------------------------------
+.env
+.env.*
+*.env
+backend/.env
+frontend/.env*
+# Keep template examples tracked
+!.env.example
+!**/.env.example
+
+# ------------------------------------------------------------
+# Production Builds & Compilations
+# ------------------------------------------------------------
+dist/
+backend/dist/
+build/
+out/
+frontend/out/
+.next/
+frontend/.next/
+
+# ------------------------------------------------------------
+# TypeScript & Cache
+# ------------------------------------------------------------
+*.tsbuildinfo
+next-env.d.ts
+.eslintcache
+.parcel-cache
+.turbo/
+.cache/
+
+# ------------------------------------------------------------
+# Uploads & Generated Reports
+# ------------------------------------------------------------
+uploads/*
+!uploads/.gitkeep
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/**/.gitkeep
+
+# ------------------------------------------------------------
+# SQLite Databases & Journals
+# ------------------------------------------------------------
+*.db-journal
+*.db-shm
+*.db-wal
+# Note: Uncomment line below if you prefer NOT to track the SQLite database binary
+# *.db
+
+# ------------------------------------------------------------
+# Logs
+# ------------------------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ------------------------------------------------------------
+# Test Coverage
+# ------------------------------------------------------------
+coverage/
+.nyc_output/
+
+# ------------------------------------------------------------
+# IDE & Code Editors
+# ------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ------------------------------------------------------------
+# Operating System Files
+# ------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini

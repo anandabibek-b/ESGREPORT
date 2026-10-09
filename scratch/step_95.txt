@@ -1,0 +1,171 @@
+Created At: 2026-10-02T22:18:48+05:30
+Completed At: 2026-10-02T22:18:48+05:30
+File Path: `file:///c:/ESG%20Bibek%202/frontend/src/app/page.tsx`
+Total Lines: 163
+Total Bytes: 8061
+Showing lines 1 to 163
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: 'use client';
+2: 
+3: import React, { useState, useEffect } from 'react';
+4: import { NavTab } from '@/components/Sidebar';
+5: import { TopPortalNavigation } from '@/components/TopPortalNavigation';
+6: import { DashboardView } from '@/components/DashboardView';
+7: import { QuestionnaireView } from '@/components/QuestionnaireView';
+8: import { ValidationView } from '@/components/ValidationView';
+9: import { CalculationView } from '@/components/CalculationView';
+10: import { EvidenceView } from '@/components/EvidenceView';
+11: import { ComparisonView } from '@/components/ComparisonView';
+12: import { LineageView } from '@/components/LineageView';
+13: import { ReportsView } from '@/components/ReportsView';
+14: import { AuditLogView } from '@/components/AuditLogView';
+15: import { OrganizationView } from '@/components/OrganizationView';
+16: import { SettingsView } from '@/components/SettingsView';
+17: import { AiAssistantDrawer } from '@/components/AiAssistantDrawer';
+18: import { GlobalSearchModal } from '@/components/GlobalSearchModal';
+19: import { api } from '@/lib/api';
+20: import { Building, Phone, Mail } from 'lucide-react';
+21: 
+22: export default function Home() {
+23:   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+24:   const [periods, setPeriods] = useState<any[]>([]);
+25:   const [activePeriod, setActivePeriod] = useState<string>('');
+26:   const [validationIssuesCount, setValidationIssuesCount] = useState<number>(0);
+27:   const [aiOpen, setAiOpen] = useState(false);
+28:   const [searchOpen, setSearchOpen] = useState(false);
+29: 
+30:   useEffect(() => {
+31:     async function loadMeta() {
+32:       try {
+33:         const [pRes, vRes] = await Promise.all([
+34:           api.getReportingPeriods(),
+35:           api.getValidations(),
+36:         ]);
+37: 
+38:         if (pRes.success && pRes.data && pRes.data.length > 0) {
+39:           setPeriods(pRes.data);
+40:           setActivePeriod(pRes.data[0].id);
+41:         }
+42: 
+43:         if (vRes.success && vRes.data?.summary) {
+44:           setValidationIssuesCount(
+45:             (vRes.data.summary.warning || 0) + (vRes.data.summary.error || 0)
+46:           );
+47:         }
+48:       } catch (e) {
+49:         console.error('Error loading metadata in main shell:', e);
+50:       }
+51:     }
+52:     loadMeta();
+53:   }, []);
+54: 
+55:   return (
+56:     <div className="min-h-screen w-full bg-[#F8FAFC] dark:bg-[#0F172A] font-sans text-[#0F172A] dark:text-[#F8FAFC] flex flex-col selection:bg-sky-500 selection:text-white transition-colors duration-200">
+57:       {/* 1. FULL-WIDTH HORIZONTAL ENTERPRISE PORTAL HEADER & NAVBAR */}
+58:       <TopPortalNavigation
+59:         currentTab={currentTab}
+60:         onTabChange={setCurrentTab}
+61:         onOpenSearch={() => setSearchOpen(true)}
+62:         onOpenAI={() => setAiOpen(true)}
+63:         activePeriod={activePeriod}
+64:         onPeriodChange={setActivePeriod}
+65:         periods={periods}
+66:         validationIssuesCount={validationIssuesCount}
+67:       />
+68: 
+69:       {/* 2. FULL-WIDTH MAIN CONTENT AREA */}
+70:       <main className="flex-1 w-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+71:         {currentTab === 'dashboard' && (
+72:           <DashboardView
+73:             onNavigate={(tab: NavTab) => setCurrentTab(tab)}
+74:             activePeriodId={activePeriod}
+75:           />
+76:         )}
+77:         {currentTab === 'organizations' && <OrganizationView />}
+78:         {currentTab === 'questionnaire' && <QuestionnaireView />}
+79:         {currentTab === 'validation' && <ValidationView />}
+80:         {currentTab === 'calculations' && <CalculationView />}
+81:         {currentTab === 'evidence' && <EvidenceView />}
+82:         {currentTab === 'comparison' && <ComparisonView />}
+83:         {currentTab === 'lineage' && <LineageView />}
+84:         {currentTab === 'reports' && <ReportsView />}
+85:         {currentTab === 'audit' && <AuditLogView />}
+86:         {currentTab === 'settings' && <SettingsView />}
+87:       </main>
+88: 
+89:       {/* 3. PORTAL FOOTER (Clean, professional corporate enterprise footer) */}
+90:       <footer className="w-full bg-white dark:bg-[#1E293B] border-t border-slate-200 dark:border-[#334155] text-slate-600 dark:text-slate-300 text-xs mt-auto shadow-xs transition-colors duration-200">
+91:         <div className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+92:           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+93:             <div className="space-y-2">
+94:               <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-bold text-sm">
+95:                 <Building className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+96:                 <span>MEIL Group Sustainability Directorate</span>
+97:               </div>
+98:               <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+99:                 Megha Engineering & Infrastructures Limited (MEIL). Committed to sustainable infrastructure, zero-harm workplaces, and SEBI BRSR reasonable assurance.
+100:               </p>
+101:             </div>
+102: 
+103:             <div className="space-y-1.5 text-[11px]">
+104:               <div className="font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[10px]">Statutory Guidelines</div>
+105:               <div className="text-slate-600 dark:text-slate-400">• SEBI Circular CIR/2023/122 (BRSR Core)</div>
+106:               <div className="text-slate-600 dark:text-slate-400">• IPCC 2006 Stationary Combustion Guidelines</div>
+107:               <div className="text-slate-600 dark:text-slate-400">• CEA CO2 Baseline Database Version 20.0</div>
+108:               <div className="text-slate-600 dark:text-slate-400">• ISO 45001 / OHSAS Occupational Safety</div>
+109:             </div>
+110: 
+111:             <div className="space-y-1.5 text-[11px]">
+112:               <div className="font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[10px]">Reporting Units</div>
+113:               <div className="text-slate-600 dark:text-slate-400">• Corporate HQ (Hyderabad)</div>
+114:               <div className="text-slate-600 dark:text-slate-400">• MEIL Energy & MEIL Infrastructure</div>
+115:               <div className="text-slate-600 dark:text-slate-400">• Olectra Greentech Electric Mobility</div>
+116:               <div className="text-slate-600 dark:text-slate-400">• Kaleshwaram & Zojila Tunnel Sites (250+ Projects)</div>
+117:             </div>
+118: 
+119:             <div className="space-y-1.5 text-[11px]">
+120:               <div className="font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[10px]">Audit Helpdesk</div>
+121:               <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+122:                 <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+123:                 <span className="font-medium">1800-6345-374 (Toll Free)</span>
+124:               </div>
+125:               <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+126:                 <Mail className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+127:                 <span className="font-medium">esg.assurance@meil.in</span>
+128:               </div>
+129:               <div className="text-slate-400 dark:text-slate-500 text-[10px]">Balanagar, Hyderabad, Telangana - 500037</div>
+130:             </div>
+131:           </div>
+132: 
+133:           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+134:             <div>
+135:               © 2026 Megha Engineering & Infrastructures Limited. All Rights Reserved.
+136:             </div>
+137:             <div className="flex items-center gap-4">
+138:               <span>Security Audited</span>
+139:               <span>•</span>
+140:               <span>SHA-256 Cryptographic Evidence</span>
+141:               <span>•</span>
+142:               <span>SEBI BRSR Compliant</span>
+143:             </div>
+144:           </div>
+145:         </div>
+146:       </footer>
+147: 
+148:       {/* Grounded ESG AI Assistant Drawer */}
+149:       <AiAssistantDrawer isOpen={aiOpen} onClose={() => setAiOpen(false)} />
+150: 
+151:       {/* Global Quick Search Modal (Ctrl+K) */}
+152:       <GlobalSearchModal
+153:         isOpen={searchOpen}
+154:         onClose={() => setSearchOpen(false)}
+155:         onNavigate={(tab) => {
+156:           setCurrentTab(tab);
+157:           setSearchOpen(false);
+158:         }}
+159:       />
+160:     </div>
+161:   );
+162: }
+163: 
+The above content shows the entire, complete file contents of the requested file.

@@ -1,0 +1,990 @@
+// ESG BRSR Reporting Platform - Database Schema
+// PostgreSQL + Prisma ORM
+// Multi-tenant architecture with tenant_id on all data tables
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../backend/node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// TENANCY & COMPANY
+// ============================================================
+
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  status      String   @default("active") // active, suspended, archived
+  plan        String   @default("standard") // standard, professional, enterprise
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  companies   Company[]
+  users       User[]
+  auditLogs   AuditLog[]
+
+  @@map("tenants")
+}
+
+model Company {
+  id                    String   @id @default(uuid())
+  tenantId              String   @map("tenant_id")
+  legalName             String   @map("legal_name")
+  tradeName             String?  @map("trade_name")
+  cin                   String?  // Corporate Identification Number
+  pan                   String?  // PAN
+  registeredAddress     String?  @map("registered_address")
+  corporateWebsite      String?  @map("corporate_website")
+  industry              String?
+  sector                String?
+  companyType           String?  @map("company_type") // private, public, llp, etc.
+  listedStatus          String?  @map("listed_status") // listed, unlisted
+  stockExchanges        String?  @map("stock_exchanges") // JSON array
+  marketCapCategory     String?  @map("market_cap_category") // large, mid, small
+  financialYearStart    Int?     @map("financial_year_start") // month number (4 = April)
+  reportingCurrency     String   @default("INR") @map("reporting_currency")
+  logoUrl               String?  @map("logo_url")
+  onboardingCompleted   Boolean  @default(false) @map("onboarding_completed")
+  status                String   @default("active")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  createdBy             String?  @map("created_by")
+
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orgUnits              OrgUnit[]
+  reportingPeriods      ReportingPeriod[]
+  valueChainPartners    ValueChainPartner[]
+  reports               Report[]
+
+  @@index([tenantId])
+  @@map("companies")
+}
+
+// ============================================================
+// USERS & RBAC
+// ============================================================
+
+model User {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  email           String
+  passwordHash    String   @map("password_hash")
+  firstName       String   @map("first_name")
+  lastName        String   @map("last_name")
+  phone           String?
+  designation     String?
+  department      String?
+  avatarUrl       String?  @map("avatar_url")
+  status          String   @default("active") // active, inactive, invited, suspended
+  lastLoginAt     DateTime? @map("last_login_at")
+  emailVerified   Boolean  @default(false) @map("email_verified")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String?  @map("created_by")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles       UserRole[]
+  submissions     Submission[]   @relation("SubmittedBy")
+  reviewsMade     Review[]       @relation("ReviewedBy")
+  approvalsMade   Approval[]     @relation("ApprovedBy")
+  evidenceUploads Evidence[]     @relation("UploadedBy")
+  notifications   Notification[] @relation("NotificationRecipient")
+  comments        Comment[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   // e.g., platform_super_admin, company_admin, etc.
+  displayName String   @map("display_name")
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system") // system roles cannot be deleted
+  level       Int      @default(0) // hierarchy level for role ordering
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@unique([name])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g., view, create, edit, delete, submit, review, approve, etc.
+  displayName String   @map("display_name")
+  module      String   // e.g., submissions, evidence, users, framework, etc.
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid())
+  roleId       String   @map("role_id")
+  permissionId String   @map("permission_id")
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  orgUnitId String?  @map("org_unit_id") // optional: scoped to specific org unit
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  orgUnit OrgUnit? @relation(fields: [orgUnitId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, roleId, orgUnitId])
+  @@map("user_roles")
+}
+
+// ============================================================
+// ORGANIZATION HIERARCHY
+// ============================================================
+
+model OrgUnitType {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String   // company, subsidiary, business_unit, location, plant, project, division, region
+  displayName String   @map("display_name")
+  level       Int      // hierarchy level (0 = top)
+  icon        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  orgUnits OrgUnit[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("org_unit_types")
+}
+
+model OrgUnit {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  companyId   String   @map("company_id")
+  parentId    String?  @map("parent_id")
+  typeId      String   @map("type_id")
+  name        String
+  code        String?  // internal code
+  address     String?
+  city        String?
+  state       String?
+  country     String?  @default("India")
+  pincode     String?
+  latitude    Float?
+  longitude   Float?
+  status      String   @default("active")
+  metadata    String?    // flexible additional data
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdBy   String?  @map("created_by")
+
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent      OrgUnit?   @relation("OrgUnitHierarchy", fields: [parentId], references: [id])
+  children    OrgUnit[]  @relation("OrgUnitHierarchy")
+  type        OrgUnitType @relation(fields: [typeId], references: [id])
+  submissions Submission[]
+  userRoles   UserRole[]
+  consolidations Consolidation[]
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([parentId])
+  @@map("org_units")
+}
+
+// ============================================================
+// REPORTING PERIODS
+// ============================================================
+
+model ReportingPeriod {
+  id                String   @id @default(uuid())
+  tenantId          String   @map("tenant_id")
+  companyId         String   @map("company_id")
+  name              String   // e.g., "FY 2024-25"
+  startDate         DateTime @map("start_date")
+  endDate           DateTime @map("end_date")
+  frameworkVersionId String? @map("framework_version_id")
+  status            String   @default("open") // open, data_collection, review, closed, archived
+  brsr              Boolean  @default(true)
+  brsrCore          Boolean  @default(false) @map("brsr_core")
+  valueChain        Boolean  @default(false) @map("value_chain")
+  assuranceTracking Boolean  @default(false) @map("assurance_tracking")
+  voluntaryDisclosures Boolean @default(false) @map("voluntary_disclosures")
+  deadline          DateTime?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         String?  @map("created_by")
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  frameworkVersion FrameworkVersion?  @relation(fields: [frameworkVersionId], references: [id])
+  submissions      Submission[]
+  reports          Report[]
+  consolidations   Consolidation[]
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@map("reporting_periods")
+}
+
+// ============================================================
+// FRAMEWORK ENGINE
+// ============================================================
+
+model Framework {
+  id          String   @id @default(uuid())
+  name        String   // e.g., "BRSR", "GRI", "TCFD"
+  code        String   @unique // e.g., "brsr"
+  description String?
+  authority   String?  // e.g., "SEBI"
+  country     String?  @default("India")
+  status      String   @default("active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  versions FrameworkVersion[]
+
+  @@map("frameworks")
+}
+
+model FrameworkVersion {
+  id              String   @id @default(uuid())
+  frameworkId     String   @map("framework_id")
+  version         String   // e.g., "1.0", "2.0"
+  name            String   // e.g., "BRSR FY 2024-25"
+  effectiveFrom   DateTime @map("effective_from")
+  effectiveTo     DateTime? @map("effective_to")
+  status          String   @default("draft") // draft, published, archived
+  changelog       String?
+  publishedAt     DateTime? @map("published_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  framework        Framework    @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  sections         Section[]
+  reportingPeriods ReportingPeriod[]
+
+  @@unique([frameworkId, version])
+  @@index([frameworkId])
+  @@map("framework_versions")
+}
+
+model Section {
+  id                 String   @id @default(uuid())
+  frameworkVersionId String   @map("framework_version_id")
+  code               String   // e.g., "A", "B", "C"
+  name               String   // e.g., "General Disclosures"
+  description        String?
+  sortOrder          Int      @default(0) @map("sort_order")
+  status             String   @default("active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  frameworkVersion FrameworkVersion @relation(fields: [frameworkVersionId], references: [id], onDelete: Cascade)
+  principles       Principle[]
+
+  @@unique([frameworkVersionId, code])
+  @@index([frameworkVersionId])
+  @@map("sections")
+}
+
+model Principle {
+  id          String   @id @default(uuid())
+  sectionId   String   @map("section_id")
+  code        String   // e.g., "P1", "P2", ... "P9"
+  number      Int      // 1-9
+  name        String   // e.g., "Ethics, Transparency and Accountability"
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  status      String   @default("active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  section    Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  indicators Indicator[]
+
+  @@unique([sectionId, code])
+  @@index([sectionId])
+  @@map("principles")
+}
+
+model Indicator {
+  id           String   @id @default(uuid())
+  principleId  String   @map("principle_id")
+  code         String   // e.g., "E1", "E2", "L1"
+  name         String
+  description  String?
+  type         String   // essential, leadership
+  isMandatory  Boolean  @default(true) @map("is_mandatory")
+  sortOrder    Int      @default(0) @map("sort_order")
+  status       String   @default("active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  principle Principle  @relation(fields: [principleId], references: [id], onDelete: Cascade)
+  questions Question[]
+
+  @@unique([principleId, code])
+  @@index([principleId])
+  @@map("indicators")
+}
+
+model Question {
+  id                String   @id @default(uuid())
+  indicatorId       String   @map("indicator_id")
+  code              String   // unique question identifier within framework
+  text              String   // the actual question text
+  description       String?  // additional context
+  guidance          String?  // guidance notes for the user
+  dataType          String   @map("data_type") // text, number, decimal, percentage, currency, date, boolean, dropdown, multi_select, file, formula
+  unit              String?  // kWh, MWh, GJ, KL, tonnes, tCO2e, INR, %, number
+  options           String?    // for dropdown/multi_select: JSON array of options
+  isRequired        Boolean  @default(true) @map("is_required")
+  isBrsrCore        Boolean  @default(false) @map("is_brsr_core")
+  evidenceRequired  Boolean  @default(false) @map("evidence_required")
+  calculationMethod String?  @map("calculation_method") // formula or description
+  reportingLevel    String   @default("company") @map("reporting_level") // company, subsidiary, business_unit, project
+  applicability     String?    // JSON rules for when this question applies
+  valueChainApplicable Boolean @default(false) @map("value_chain_applicable")
+  sortOrder         Int      @default(0) @map("sort_order")
+  status            String   @default("active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  indicator     Indicator      @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+  metrics       Metric[]
+  metricValues  MetricValue[]
+  validationRules QuestionValidationRule[]
+
+  @@unique([indicatorId, code])
+  @@index([indicatorId])
+  @@index([isBrsrCore])
+  @@map("questions")
+}
+
+model Metric {
+  id                String   @id @default(uuid())
+  questionId        String?  @map("question_id")
+  tenantId          String?  @map("tenant_id") // null = system metric
+  code              String
+  name              String
+  description       String?
+  category          String   // environmental, social, governance
+  subcategory       String?  // energy, water, emissions, waste, workforce, etc.
+  dataType          String   @map("data_type")
+  unitId            String?  @map("unit_id")
+  calculationMethod String?  @map("calculation_method")
+  consolidationMethod String @default("sum") @map("consolidation_method") // sum, average, weighted_average, percentage, ratio, latest, custom, na
+  isBrsrCore        Boolean  @default(false) @map("is_brsr_core")
+  isCustom          Boolean  @default(false) @map("is_custom")
+  sortOrder         Int      @default(0) @map("sort_order")
+  status            String   @default("active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  question      Question?      @relation(fields: [questionId], references: [id])
+  unit          Unit?          @relation(fields: [unitId], references: [id])
+  metricValues  MetricValue[]
+
+  @@index([category])
+  @@index([isBrsrCore])
+  @@map("metrics")
+}
+
+model Unit {
+  id          String   @id @default(uuid())
+  code        String   @unique // kWh, MWh, GJ, KL, tonnes, tCO2e, INR, percent, count
+  name        String   // Kilowatt-hours, Megawatt-hours, etc.
+  symbol      String   // kWh, MWh, GJ, KL, t, tCO₂e, ₹, %, #
+  category    String   // energy, water, emissions, currency, general
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  metrics Metric[]
+
+  @@map("units")
+}
+
+model ValidationRule {
+  id              String   @id @default(uuid())
+  tenantId        String?  @map("tenant_id") // null = system rule
+  name            String
+  description     String?
+  ruleType        String   @map("rule_type") // required, range, comparison, formula, custom
+  ruleConfig      String     @map("rule_config") // JSON rule definition
+  severity        String   @default("warning") // error, warning, info
+  message         String   // message to show when validation fails
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  questionRules   QuestionValidationRule[]
+  validationResults ValidationResult[]
+
+  @@map("validation_rules")
+}
+
+model QuestionValidationRule {
+  id               String   @id @default(uuid())
+  questionId       String   @map("question_id")
+  validationRuleId String   @map("validation_rule_id")
+
+  question       Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  validationRule ValidationRule @relation(fields: [validationRuleId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, validationRuleId])
+  @@map("question_validation_rules")
+}
+
+// ============================================================
+// ESG DATA COLLECTION
+// ============================================================
+
+model Submission {
+  id                String   @id @default(uuid())
+  tenantId          String   @map("tenant_id")
+  reportingPeriodId String   @map("reporting_period_id")
+  orgUnitId         String   @map("org_unit_id")
+  submittedById     String?  @map("submitted_by_id")
+  category          String   // environmental, social, governance, general
+  sectionCode       String?  @map("section_code") // A, B, C
+  principleCode     String?  @map("principle_code") // P1-P9
+  indicatorCode     String?  @map("indicator_code") // E1, E2, L1
+  status            String   @default("draft") // draft, submitted, validating, validation_failed, under_review, changes_requested, approved, rejected, consolidated
+  submittedAt       DateTime? @map("submitted_at")
+  dataQualityScore  Float?   @map("data_quality_score")
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  reportingPeriod ReportingPeriod @relation(fields: [reportingPeriodId], references: [id], onDelete: Cascade)
+  orgUnit         OrgUnit         @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  submittedBy     User?           @relation("SubmittedBy", fields: [submittedById], references: [id])
+  metricValues    MetricValue[]
+  evidence        Evidence[]
+  validationResults ValidationResult[]
+  reviews         Review[]
+  approvals       Approval[]
+  comments        Comment[]
+  workflowTransitions WorkflowTransition[]
+
+  @@index([tenantId])
+  @@index([reportingPeriodId])
+  @@index([orgUnitId])
+  @@index([status])
+  @@map("submissions")
+}
+
+model MetricValue {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  submissionId    String   @map("submission_id")
+  questionId      String?  @map("question_id")
+  metricId        String?  @map("metric_id")
+  numericValue    Float?   @map("numeric_value")
+  textValue       String?  @map("text_value")
+  booleanValue    Boolean? @map("boolean_value")
+  dateValue       DateTime? @map("date_value")
+  jsonValue       String?    @map("json_value") // for multi-select, tables, etc.
+  unit            String?
+  notes           String?
+  isEstimated     Boolean  @default(false) @map("is_estimated")
+  dataSource      String?  @map("data_source")
+  previousValue   Float?   @map("previous_value") // for YoY comparison
+  variance        Float?   // percentage variance from previous
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdBy       String?  @map("created_by")
+
+  submission  Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question    Question?   @relation(fields: [questionId], references: [id])
+  metric      Metric?     @relation(fields: [metricId], references: [id])
+  dataLineage DataLineage[]
+
+  @@index([tenantId])
+  @@index([submissionId])
+  @@index([metricId])
+  @@map("metric_values")
+}
+
+// ============================================================
+// EVIDENCE MANAGEMENT
+// ============================================================
+
+model Evidence {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  submissionId    String?  @map("submission_id")
+  fileName        String   @map("file_name")
+  fileType        String   @map("file_type") // pdf, xlsx, csv, docx, png, jpg
+  fileSize        Int      @map("file_size") // bytes
+  filePath        String   @map("file_path")
+  fileHash        String?  @map("file_hash") // SHA-256
+  mimeType        String?  @map("mime_type")
+  evidenceType    String?  @map("evidence_type") // supporting_document, calculation_sheet, audit_report, certificate, photograph, other
+  description     String?
+  questionCode    String?  @map("question_code")
+  metricCode      String?  @map("metric_code")
+  version         Int      @default(1)
+  uploadedById    String   @map("uploaded_by_id")
+  uploadedAt      DateTime @default(now()) @map("uploaded_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  submission  Submission? @relation(fields: [submissionId], references: [id])
+  uploadedBy  User        @relation("UploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([tenantId])
+  @@index([submissionId])
+  @@map("evidence")
+}
+
+// ============================================================
+// VALIDATION
+// ============================================================
+
+model ValidationResult {
+  id               String   @id @default(uuid())
+  tenantId         String   @map("tenant_id")
+  submissionId     String   @map("submission_id")
+  validationRuleId String?  @map("validation_rule_id")
+  field            String?  // which field/question failed
+  severity         String   // error, warning, info
+  message          String
+  details          String?    // additional context
+  isResolved       Boolean  @default(false) @map("is_resolved")
+  resolvedById     String?  @map("resolved_by_id")
+  resolvedAt       DateTime? @map("resolved_at")
+  resolutionNotes  String?  @map("resolution_notes")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  submission     Submission      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  validationRule ValidationRule? @relation(fields: [validationRuleId], references: [id])
+
+  @@index([tenantId])
+  @@index([submissionId])
+  @@map("validation_results")
+}
+
+// ============================================================
+// WORKFLOW: REVIEWS & APPROVALS
+// ============================================================
+
+model Review {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  submissionId String   @map("submission_id")
+  reviewerId   String   @map("reviewer_id")
+  status       String   // approved, changes_requested, rejected
+  comments     String?
+  reviewedAt   DateTime @default(now()) @map("reviewed_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewer   User       @relation("ReviewedBy", fields: [reviewerId], references: [id])
+
+  @@index([tenantId])
+  @@index([submissionId])
+  @@map("reviews")
+}
+
+model Approval {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  submissionId String   @map("submission_id")
+  approverId   String   @map("approver_id")
+  status       String   // approved, rejected
+  comments     String?
+  approvedAt   DateTime @default(now()) @map("approved_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  approver   User       @relation("ApprovedBy", fields: [approverId], references: [id])
+
+  @@index([tenantId])
+  @@index([submissionId])
+  @@map("approvals")
+}
+
+model Comment {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  submissionId String   @map("submission_id")
+  userId       String   @map("user_id")
+  text         String
+  type         String   @default("comment") // comment, review_note, approval_note, system
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([submissionId])
+  @@map("comments")
+}
+
+model WorkflowTransition {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  submissionId String   @map("submission_id")
+  fromStatus   String   @map("from_status")
+  toStatus     String   @map("to_status")
+  userId       String   @map("user_id")
+  comment      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([submissionId])
+  @@map("workflow_transitions")
+}
+
+// ============================================================
+// CONSOLIDATION & DATA LINEAGE
+// ============================================================
+
+model Consolidation {
+  id                String   @id @default(uuid())
+  tenantId          String   @map("tenant_id")
+  reportingPeriodId String   @map("reporting_period_id")
+  orgUnitId         String   @map("org_unit_id")
+  metricCode        String   @map("metric_code")
+  consolidatedValue Float?   @map("consolidated_value")
+  method            String   // sum, average, weighted_average, percentage, ratio, latest, custom
+  formula           String?  // custom formula if applicable
+  sourceCount       Int      @default(0) @map("source_count")
+  status            String   @default("draft") // draft, final
+  consolidatedAt    DateTime @default(now()) @map("consolidated_at")
+  consolidatedBy    String?  @map("consolidated_by")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  reportingPeriod ReportingPeriod @relation(fields: [reportingPeriodId], references: [id])
+  orgUnit         OrgUnit         @relation(fields: [orgUnitId], references: [id])
+  entries         ConsolidationEntry[]
+
+  @@unique([tenantId, reportingPeriodId, orgUnitId, metricCode])
+  @@index([tenantId])
+  @@map("consolidations")
+}
+
+model ConsolidationEntry {
+  id               String   @id @default(uuid())
+  consolidationId  String   @map("consolidation_id")
+  sourceOrgUnitId  String   @map("source_org_unit_id")
+  sourceValue      Float?   @map("source_value")
+  weight           Float?   @default(1.0)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  consolidation Consolidation @relation(fields: [consolidationId], references: [id], onDelete: Cascade)
+
+  @@map("consolidation_entries")
+}
+
+model DataLineage {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  metricValueId   String   @map("metric_value_id")
+  sourceType      String   @map("source_type") // original, consolidated, calculated, imported
+  sourceEntity    String?  @map("source_entity") // org unit name
+  reportingPeriod String?  @map("reporting_period")
+  metricCode      String?  @map("metric_code")
+  calculationMethod String? @map("calculation_method")
+  submittedBy     String?  @map("submitted_by")
+  reviewedBy      String?  @map("reviewed_by")
+  approvedBy      String?  @map("approved_by")
+  evidenceIds     String?    @map("evidence_ids") // array of evidence IDs
+  consolidationPath String?  @map("consolidation_path") // array showing hierarchy path
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  metricValue MetricValue @relation(fields: [metricValueId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([metricValueId])
+  @@map("data_lineage")
+}
+
+// ============================================================
+// VALUE CHAIN
+// ============================================================
+
+model ValueChainPartner {
+  id                 String   @id @default(uuid())
+  tenantId           String   @map("tenant_id")
+  companyId          String   @map("company_id")
+  name               String
+  type               String   // upstream, downstream
+  category           String?  // supplier, vendor, contractor, distributor, customer
+  relationship       String?  // description of relationship
+  purchaseValue      Float?   @map("purchase_value")
+  salesValue         Float?   @map("sales_value")
+  purchasePercentage Float?   @map("purchase_percentage")
+  salesPercentage    Float?   @map("sales_percentage")
+  esgReportingStatus String?  @map("esg_reporting_status") // not_started, in_progress, completed
+  reportingPeriod    String?  @map("reporting_period")
+  contactName        String?  @map("contact_name")
+  contactEmail       String?  @map("contact_email")
+  status             String   @default("active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  company          Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  valueChainData   ValueChainData[]
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@map("value_chain_partners")
+}
+
+model ValueChainData {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  partnerId   String   @map("partner_id")
+  metricCode  String   @map("metric_code")
+  value       Float?
+  unit        String?
+  period      String?
+  evidenceId  String?  @map("evidence_id")
+  status      String   @default("draft") // draft, submitted, verified
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  partner ValueChainPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([partnerId])
+  @@map("value_chain_data")
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+
+model Report {
+  id                String   @id @default(uuid())
+  tenantId          String   @map("tenant_id")
+  companyId         String   @map("company_id")
+  reportingPeriodId String   @map("reporting_period_id")
+  type              String   // brsr, brsr_core, esg_summary, environmental, social, governance, entity, consolidated, data_quality, evidence, audit_trail
+  name              String
+  description       String?
+  frameworkVersion  String?  @map("framework_version")
+  format            String   @default("pdf") // pdf, xlsx, csv
+  filePath          String?  @map("file_path")
+  fileSize          Int?     @map("file_size")
+  generatedBy       String?  @map("generated_by")
+  generatedAt       DateTime @default(now()) @map("generated_at")
+  status            String   @default("generating") // generating, ready, error
+  metadata          String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  company         Company         @relation(fields: [companyId], references: [id])
+  reportingPeriod ReportingPeriod @relation(fields: [reportingPeriodId], references: [id])
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@map("reports")
+}
+
+// ============================================================
+// AUDIT LOGS
+// ============================================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  userId      String?  @map("user_id")
+  action      String   // login, logout, create, update, delete, submit, review, approve, reject, upload, download, export, config_change, framework_change
+  entityType  String   @map("entity_type") // submission, evidence, user, company, org_unit, framework, etc.
+  entityId    String?  @map("entity_id")
+  oldValue    String?    @map("old_value")
+  newValue    String?    @map("new_value")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  metadata    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // No update, no delete - immutable
+  @@index([tenantId])
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  userId      String   @map("user_id")
+  type        String   // submission_assigned, submission_due, validation_failed, review_requested, changes_requested, approved, rejected, deadline_approaching
+  title       String
+  message     String
+  link        String?  // deep link to relevant page
+  isRead      Boolean  @default(false) @map("is_read")
+  readAt      DateTime? @map("read_at")
+  metadata    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id          String   @id @default(uuid())
+  type        String   @unique // matches Notification.type
+  subject     String   // for email
+  body        String   // template with {{variables}}
+  channels    String     @default("[\"in_app\"]") // ["in_app", "email"]
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+// ============================================================
+// AI FEATURES
+// ============================================================
+
+model AiExtractionLog {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  userId        String   @map("user_id")
+  documentName  String   @map("document_name")
+  extractedData String     @map("extracted_data") // array of {metric, value, unit, confidence}
+  status        String   @default("pending") // pending, confirmed, rejected
+  confirmedData String?    @map("confirmed_data")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@map("ai_extraction_logs")
+}
+
+model AiSuggestion {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  type        String   // evidence_mapping, anomaly, completion_suggestion
+  context     String?  // what triggered the suggestion
+  suggestion  String
+  confidence  Float?
+  status      String   @default("pending") // pending, accepted, dismissed
+  metadata    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("ai_suggestions")
+}
+
+
+// ============================================================
+// RESPONSE VERSIONING & CALCULATIONS (PHASE 3, 11, 16)
+// ============================================================
+
+model MetricValueVersion {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  metricValueId String   @map("metric_value_id")
+  versionNumber Int      @map("version_number")
+  numericValue  Float?   @map("numeric_value")
+  textValue     String?  @map("text_value")
+  unit          String?
+  reason        String?
+  changedById   String?  @map("changed_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@index([metricValueId])
+  @@map("metric_value_versions")
+}
+
+model Calculation {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  submissionId    String?  @map("submission_id")
+  metricValueId   String?  @map("metric_value_id")
+  name            String
+  code            String
+  category        String
+  formula         String
+  methodology     String?
+  resultValue     Float    @map("result_value")
+  resultUnit      String   @map("result_unit")
+  calculatedBy    String?  @map("calculated_by")
+  version         Int      @default(1)
+  status          String   @default("active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  inputs          CalculationInput[]
+
+  @@index([tenantId])
+  @@index([category])
+  @@map("calculations")
+}
+
+model CalculationInput {
+  id            String   @id @default(uuid())
+  calculationId String   @map("calculation_id")
+  name          String
+  inputCode     String   @map("input_code")
+  inputValue    Float    @map("input_value")
+  inputUnit     String   @map("input_unit")
+  source        String?
+  sourceFileId  String?  @map("source_file_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  calculation   Calculation @relation(fields: [calculationId], references: [id], onDelete: Cascade)
+
+  @@index([calculationId])
+  @@map("calculation_inputs")
+}
+
+model WorkflowStep {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  name         String
+  stepOrder    Int      @map("step_order")
+  roleRequired String   @map("role_required")
+  status       String   @default("active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId])
+  @@map("workflow_steps")
+}

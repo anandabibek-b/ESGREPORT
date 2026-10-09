@@ -1,0 +1,162 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { NavTab } from '@/components/Sidebar';
+import { TopPortalNavigation } from '@/components/TopPortalNavigation';
+import { DashboardView } from '@/components/DashboardView';
+import { QuestionnaireView } from '@/components/QuestionnaireView';
+import { ValidationView } from '@/components/ValidationView';
+import { CalculationView } from '@/components/CalculationView';
+import { EvidenceView } from '@/components/EvidenceView';
+import { ComparisonView } from '@/components/ComparisonView';
+import { LineageView } from '@/components/LineageView';
+import { ReportsView } from '@/components/ReportsView';
+import { AuditLogView } from '@/components/AuditLogView';
+import { OrganizationView } from '@/components/OrganizationView';
+import { SettingsView } from '@/components/SettingsView';
+import { AiAssistantDrawer } from '@/components/AiAssistantDrawer';
+import { GlobalSearchModal } from '@/components/GlobalSearchModal';
+import { api } from '@/lib/api';
+import { Building, Phone, Mail } from 'lucide-react';
+
+export default function Home() {
+  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [periods, setPeriods] = useState<any[]>([]);
+  const [activePeriod, setActivePeriod] = useState<string>('');
+  const [validationIssuesCount, setValidationIssuesCount] = useState<number>(0);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    async function loadMeta() {
+      try {
+        const [pRes, vRes] = await Promise.all([
+          api.getReportingPeriods(),
+          api.getValidations(),
+        ]);
+
+        if (pRes.success && pRes.data && pRes.data.length > 0) {
+          setPeriods(pRes.data);
+          setActivePeriod(pRes.data[0].id);
+        }
+
+        if (vRes.success && vRes.data?.summary) {
+          setValidationIssuesCount(
+            (vRes.data.summary.warning || 0) + (vRes.data.summary.error || 0)
+          );
+        }
+      } catch (e) {
+        console.error('Error loading metadata in main shell:', e);
+      }
+    }
+    loadMeta();
+  }, []);
+
+  return (
+    <div className="min-h-screen w-full bg-[#F8FAFC] dark:bg-[#0F172A] font-sans text-[#0F172A] dark:text-[#F8FAFC] flex flex-col selection:bg-sky-500 selection:text-white transition-colors duration-200">
+      {/* 1. FULL-WIDTH HORIZONTAL ENTERPRISE PORTAL HEADER & NAVBAR */}
+      <TopPortalNavigation
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
+        onOpenSearch={() => setSearchOpen(true)}
+        onOpenAI={() => setAiOpen(true)}
+        activePeriod={activePeriod}
+        onPeriodChange={setActivePeriod}
+        periods={periods}
+        validationIssuesCount={validationIssuesCount}
+      />
+
+      {/* 2. FULL-WIDTH MAIN CONTENT AREA */}
+      <main className="flex-1 w-full max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {currentTab === 'dashboard' && (
+          <DashboardView
+            onNavigate={(tab: NavTab) => setCurrentTab(tab)}
+            activePeriodId={activePeriod}
+          />
+        )}
+        {currentTab === 'organizations' && <OrganizationView />}
+        {currentTab === 'questionnaire' && <QuestionnaireView />}
+        {currentTab === 'validation' && <ValidationView />}
+        {currentTab === 'calculations' && <CalculationView />}
+        {currentTab === 'evidence' && <EvidenceView />}
+        {currentTab === 'comparison' && <ComparisonView />}
+        {currentTab === 'lineage' && <LineageView />}
+        {currentTab === 'reports' && <ReportsView />}
+        {currentTab === 'audit' && <AuditLogView />}
+        {currentTab === 'settings' && <SettingsView />}
+      </main>
+
+      {/* 3. PORTAL FOOTER (Clean, professional corporate enterprise footer) */}
+      <footer className="w-full bg-white dark:bg-[#1E293B] border-t border-slate-200 dark:border-[#334155] text-slate-600 dark:text-slate-300 text-xs mt-auto shadow-xs transition-colors duration-200">
+        <div className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-bold text-sm">
+                <Building className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                <span>MEIL Group Sustainability Directorate</span>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+                Megha Engineering & Infrastructures Limited (MEIL). Committed to sustainable infrastructure, zero-harm workplaces, and SEBI BRSR reasonable assurance.
+              </p>
+            </div>
+
+            <div className="space-y-1.5 text-[11px]">
+              <div className="font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[10px]">Statutory Guidelines</div>
+              <div className="text-slate-600 dark:text-slate-400">• SEBI Circular CIR/2023/122 (BRSR Core)</div>
+              <div className="text-slate-600 dark:text-slate-400">• IPCC 2006 Stationary Combustion Guidelines</div>
+              <div className="text-slate-600 dark:text-slate-400">• CEA CO2 Baseline Database Version 20.0</div>
+              <div className="text-slate-600 dark:text-slate-400">• ISO 45001 / OHSAS Occupational Safety</div>
+            </div>
+
+            <div className="space-y-1.5 text-[11px]">
+              <div className="font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[10px]">Reporting Units</div>
+              <div className="text-slate-600 dark:text-slate-400">• Corporate HQ (Hyderabad)</div>
+              <div className="text-slate-600 dark:text-slate-400">• MEIL Energy & MEIL Infrastructure</div>
+              <div className="text-slate-600 dark:text-slate-400">• Olectra Greentech Electric Mobility</div>
+              <div className="text-slate-600 dark:text-slate-400">• Kaleshwaram & Zojila Tunnel Sites (250+ Projects)</div>
+            </div>
+
+            <div className="space-y-1.5 text-[11px]">
+              <div className="font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider text-[10px]">Audit Helpdesk</div>
+              <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="font-medium">1800-6345-374 (Toll Free)</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                <Mail className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                <span className="font-medium">esg.assurance@meil.in</span>
+              </div>
+              <div className="text-slate-400 dark:text-slate-500 text-[10px]">Balanagar, Hyderabad, Telangana - 500037</div>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+            <div>
+              © 2026 Megha Engineering & Infrastructures Limited. All Rights Reserved.
+            </div>
+            <div className="flex items-center gap-4">
+              <span>Security Audited</span>
+              <span>•</span>
+              <span>SHA-256 Cryptographic Evidence</span>
+              <span>•</span>
+              <span>SEBI BRSR Compliant</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Grounded ESG AI Assistant Drawer */}
+      <AiAssistantDrawer isOpen={aiOpen} onClose={() => setAiOpen(false)} />
+
+      {/* Global Quick Search Modal (Ctrl+K) */}
+      <GlobalSearchModal
+        isOpen={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onNavigate={(tab) => {
+          setCurrentTab(tab);
+          setSearchOpen(false);
+        }}
+      />
+    </div>
+  );
+}

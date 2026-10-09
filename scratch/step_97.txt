@@ -1,0 +1,108 @@
+Created At: 2026-10-02T22:18:58+05:30
+Completed At: 2026-10-02T22:18:58+05:30
+File Path: `file:///c:/ESG%20Bibek%202/frontend/src/components/TopPortalNavigation.tsx`
+Total Lines: 378
+Total Bytes: 20139
+Showing lines 1 to 100
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: 'use client';
+2: 
+3: import React, { useState, useEffect } from 'react';
+4: import { useAuth } from '../context/AuthContext';
+5: import { useTheme } from '../context/ThemeContext';
+6: import { api } from '../lib/api';
+7: import { NAV_ITEMS_CONFIG, NavTab } from '../lib/navigationConfig';
+8: import {
+9:   Bell,
+10:   Search,
+11:   Sparkles,
+12:   Shield,
+13:   UserCheck,
+14:   ChevronDown,
+15:   CheckCircle,
+16:   Building,
+17:   Calendar,
+18:   Phone,
+19:   Award,
+20:   Send,
+21: } from 'lucide-react';
+22: 
+23: interface TopPortalNavigationProps {
+24:   currentTab: NavTab;
+25:   onTabChange: (tab: NavTab) => void;
+26:   onOpenSearch: () => void;
+27:   onOpenAI: () => void;
+28:   activePeriod: string;
+29:   onPeriodChange: (periodId: string) => void;
+30:   periods: any[];
+31:   validationIssuesCount?: number;
+32: }
+33: 
+34: export const TopPortalNavigation: React.FC<TopPortalNavigationProps> = ({
+35:   currentTab,
+36:   onTabChange,
+37:   onOpenSearch,
+38:   onOpenAI,
+39:   activePeriod,
+40:   onPeriodChange,
+41:   periods,
+42:   validationIssuesCount = 0,
+43: }) => {
+44:   const { user, activeRole, switchRole } = useAuth();
+45:   const { theme, toggleTheme } = useTheme();
+46:   const [unreadCount, setUnreadCount] = useState<number>(0);
+47:   const [showNotifications, setShowNotifications] = useState<boolean>(false);
+48:   const [notifications, setNotifications] = useState<any[]>([]);
+49:   const [showRoleMenu, setShowRoleMenu] = useState<boolean>(false);
+50: 
+51:   useEffect(() => {
+52:     async function loadNotifications() {
+53:       try {
+54:         const res = await api.getNotifications();
+55:         if (res.success && res.data) {
+56:           setNotifications(res.data.notifications || []);
+57:           setUnreadCount(res.data.unreadCount || 0);
+58:         }
+59:       } catch (e) {
+60:         // silent fallback
+61:       }
+62:     }
+63:     loadNotifications();
+64:   }, [user]);
+65: 
+66:   const handleMarkAllRead = async () => {
+67:     try {
+68:       await api.markAllNotificationsRead();
+69:       setUnreadCount(0);
+70:       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+71:     } catch (e) {
+72:       console.error(e);
+73:     }
+74:   };
+75: 
+76:   const roleLabels: Record<string, { label: string; color: string; badge: string }> = {
+77:     company_admin: { label: 'Company Admin', color: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700', badge: 'Admin' },
+78:     esg_manager: { label: 'ESG Manager', color: 'bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800', badge: 'Manager' },
+79:     data_owner: { label: 'Data Owner', color: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800', badge: 'Site Owner' },
+80:     reviewer: { label: 'ESG Reviewer', color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800', badge: 'Reviewer' },
+81:     approver: { label: 'Executive Approver', color: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800', badge: 'Sign-off' },
+82:     auditor: { label: 'External Auditor', color: 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800', badge: 'Assurance' },
+83:   };
+84: 
+85:   const currentRoleBadge = roleLabels[activeRole] || {
+86:     label: activeRole,
+87:     color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+88:     badge: 'Role',
+89:   };
+90: 
+91:   return (
+92:     <header className="w-full bg-white dark:bg-[#1E293B] border-b border-slate-200 dark:border-[#334155] shadow-xs sticky top-0 z-40 select-none transition-colors duration-200">
+93:       {/* 1. TOP UTILITY STRIP */}
+94:       <div className="bg-slate-50/90 dark:bg-[#111827] text-slate-600 dark:text-slate-300 text-[11px] px-4 sm:px-8 py-1.5 border-b border-slate-200 dark:border-[#334155] flex flex-wrap items-center justify-between gap-3 transition-colors duration-200">
+95:         {/* Left: Helplines & Directives */}
+96:         <div className="flex items-center gap-4 flex-wrap">
+97:           <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-medium">
+98:             <Phone className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+99:             <span>Toll-Free ESG Directorate: <strong className="text-slate-900 dark:text-white font-mono">1800-6345-374 (1800-MEIL-ESG)</strong></span>
+100:           </div>
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.
